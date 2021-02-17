@@ -1,0 +1,6 @@
+[submodule "remote-lights-web"]
+	path = remote-lights-web
+	url = git@github.com:jxsavage/remote-lights-web.git
+[submodule "remote-lights-pi"]
+	path = remote-lights-pi
+	url = git@github.com:jxsavage/remote-lights-pi.git
