@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+
+import os, sys, getopt
+
+def main(argv):
+  info = '''
+Launcher Info:
+-r                  Launches redis container.
+-w                  Launches web container.
+-s                  Launches socket container.
+'''
+  
+
+  try:
+    opts, args = getopt.getopt(argv, 'rws', ['initEnv', 'production', 'build'])
+  except getopt.GetoptError:
+    print(info)
+    sys.exit()
+  
+  commandArr = ['docker-compose --project-name remote-lights -f docker-compose.yml']
+  containers = []
+  initEnv = False
+  production = False
+  build = False
+  # Find out if we're building for production
+  for opt, args in opts:
+    if opt == '--production':
+      production = True
+  # Adds compose files based on container name
+  def addConfig(container):
+    commandArr.append(f'-f docker-compose.{container}.yml')
+    if production:
+      commandArr.append(f'-f docker-compose.{container}.production.yml')
+    containers.append(container)
+
+  # Parse arguements
+  for opt, arg in opts:
+    # Redis container
+    if opt == '-r':
+      addConfig('redis')
+    # Web container
+    elif opt == '-w':
+      addConfig('web')
+    # Socket container
+    elif opt == '-s':
+      addConfig('socket')
+    # Inititialize environemnt
+    elif opt == '--initEnv':
+      initEnv = True
+    elif opt == '--build':
+      build = True
+
+
+  if initEnv:
+    envArr = ['react', 'socket', 'shared']
+    for env in envArr:
+      os.system(f'cp {env}.example.env {env}.env')
+    print('Reset .env files to defaults.')
+  elif containers:
+    if build:
+      commandArr.append('build')
+    else:
+      commandArr.append('up')
+    command = ' '.join(commandArr)
+    print('executing command:')
+    print(command)
+    os.system(command)
+  else:
+    print(info)
+    print('No container specified see options above...')
+
+
+
+
+
+if __name__ == '__main__':
+   main(sys.argv[1:])

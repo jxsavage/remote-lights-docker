@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  webapp:
+    image: web:production
+    build:
+      target: production
+    command: server-prod
+    cpus: '1'
+    mem_limit: 300M
+    memswap_limit: 300M
+    environment:
+      - NODE_ENV=production

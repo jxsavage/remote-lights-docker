@@ -1,0 +1,7 @@
+version: "3.9"
+
+services:
+  redis:
+    cpus: '1'
+    mem_limit: 300M
+    memswap_limit: 300M

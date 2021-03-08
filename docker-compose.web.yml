@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  webapp:
+    command: start
+    image: web:development
+    build:
+      target: development
+      context: ./remote-lights-web
+    ports:
+      - 3000:3000
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - type: bind
+        source: ./remote-lights-web/src
+        target: /app/src
+      - type: bind
+        source: ./remote-lights-web/public
+        target: /app/public
+    env_file:
+      - react.env
+      - shared.env
+    environment:
+      - NODE_ENV=development
