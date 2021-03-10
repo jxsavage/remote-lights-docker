@@ -1,76 +1,145 @@
 #!/usr/bin/python3
 
-import os, sys, getopt
+import os, sys, getopt, yaml
 
 def main(argv):
   info = '''
-Launcher Info:
--r                  Launches redis container.
--w                  Launches web container.
--s                  Launches socket container.
+Container Launching Options:
+args:
+up            remote-lights [container options] [--mode] up
+init          remote-lights init
+build         remote-lights [container options] [--mode] [--push] build
+registry-up
+Container Options:
+-w            Launches web container.
+-r            Launches redis container.
+-s            Launches socket container.
+ex: remote-lights -ws to launch web & socket container in development
+--mode        opts: production|development
+--push        opts: push
 '''
-  
 
   try:
-    opts, args = getopt.getopt(argv, 'rws', ['initEnv', 'production', 'build'])
+    opts, args = getopt.getopt(argv, 'rws', ['mode=', 'push'])
+    if len(args) >= 2:
+      print(info)
+      print(f'Got too many arguments, expected 1 and got {len(args)}')
+    else:
+      command_arg = args[0]
   except getopt.GetoptError:
     print(info)
     sys.exit()
   
-  commandArr = ['docker-compose --project-name remote-lights -f docker-compose.yml']
+  commandArr = ['docker-compose -f docker-compose.yml']
   containers = []
-  initEnv = False
   production = False
-  build = False
   # Find out if we're building for production
-  for opt, args in opts:
-    if opt == '--production':
-      production = True
+  for opt, arg in opts:
+    if opt == '--mode':
+      production = True if arg == 'production' else False
+
   # Adds compose files based on container name
-  def addConfig(container):
+  def add_config(container):
     commandArr.append(f'-f docker-compose.{container}.yml')
-    if production:
-      commandArr.append(f'-f docker-compose.{container}.production.yml')
+    if not command_arg == 'registry-up':
+      if production:
+        commandArr.append(f'-f docker-compose.{container}.development.yml')
+        commandArr.append(f'-f docker-compose.{container}.production.yml')
+      else:
+        commandArr.append(f'-f docker-compose.{container}.development.yml')
     containers.append(container)
 
+  push_to_registry = False
   # Parse arguements
   for opt, arg in opts:
-    # Redis container
+    # Container Options
     if opt == '-r':
-      addConfig('redis')
-    # Web container
+      add_config('redis')
     elif opt == '-w':
-      addConfig('web')
-    # Socket container
+      add_config('web')
     elif opt == '-s':
-      addConfig('socket')
-    # Inititialize environemnt
-    elif opt == '--initEnv':
-      initEnv = True
-    elif opt == '--build':
-      build = True
+      add_config('socket')
+    elif opt == '--push':
+      push_to_registry = True
 
-
-  if initEnv:
+  def execute_command():
+    command = ' '.join(commandArr)
+    print('Executing command:')
+    print(command)
+    os.system(command)
+  # Bringing up containers
+  if command_arg == 'up' or command_arg == 'registry-up':
+    commandArr.append('up')
+    execute_command()
+  # Building containers
+  elif command_arg == 'build':
+    commandArr.append('build')
+    execute_command()
+    #Should we push local to registry?
+    if push_to_registry:
+      environment = 'production' if production else 'development'
+      for container in containers:
+        tag_and_push_image(get_container_name(container), environment)
+  # Are we initizilizing env files?
+  elif command_arg == 'init':
     envArr = ['react', 'socket', 'shared']
     for env in envArr:
       os.system(f'cp {env}.example.env {env}.env')
+    os.system('cp env.example.yml env.yml')
     print('Reset .env files to defaults.')
-  elif containers:
-    if build:
-      commandArr.append('build')
-    else:
-      commandArr.append('up')
-    command = ' '.join(commandArr)
-    print('executing command:')
-    print(command)
-    os.system(command)
   else:
     print(info)
     print('No container specified see options above...')
+#end main
 
 
+# Loads .yml file and returns dictionary
+def load_config(file_name):
+  try:
+    stream = open(f'{file_name}.yml', 'r')
+    return yaml.safe_load(stream)
+  except:
+    print(f'No {file_name}.yml found...')
+  
+# Load project env
+project_environment = load_config('remote-lights')['environment']
 
+# environment getters
+def get_web_container(): return project_environment['WEB_CONTAINER']
+def get_redis_container(): return project_environment['REDIS_CONTAINER']
+def get_project_name(): return project_environment['COMPOSE_PROJECT_NAME']
+def get_project_seperator(): return project_environment['PROJECT_SEPERATOR']
+def get_light_client_container(): return project_environment['LIGHT_CLIENT_CONTAINER']
+
+# Load registry env
+registry_config = load_config('env')['registry']
+
+def set_os_env():
+  for var, val in project_environment.items():
+    os.environ[var] = str(val)
+  for var, val in registry_config.items():
+    os.environ[var] = str(val)
+set_os_env()
+# Create registry address
+def get_registry_ip(config = registry_config): return registry_config['DOCKER_REGISTRY_IP']
+def get_registry_port(config = registry_config): return  registry_config['DOCKER_REGISTRY_PORT']
+def get_registry_address(): return f'{get_registry_ip()}:{get_registry_port()}'
+# Create image tags
+def create_image_tag(container_name, environment):
+  return f'{get_project_name()}{get_project_seperator()}{container_name}:{environment}'
+def create_registry_image_tag(image_name): return f'{get_registry_address()}/{image_name}'
+# Tag and push Images
+def tag_and_push_image(container_name, environment):
+  image_tag = create_image_tag(container_name, environment)
+  registry_tag = create_registry_image_tag(image_tag)
+  tag_command = f'docker tag {image_tag} {registry_tag}'
+  push_command = f'docker push {registry_tag}'
+  print(f'tagging container for registry with command:\n{tag_command}')
+  os.system(tag_command)
+  print(f'pushing container to registry with command:\n{push_command}')
+  os.system(push_command)
+container_names = {'web': get_web_container(), 'socket': get_light_client_container(), 'redis': get_redis_container()}
+def get_container_name(container): return container_names[container]
 
 
 if __name__ == '__main__':

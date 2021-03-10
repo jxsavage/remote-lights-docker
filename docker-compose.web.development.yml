@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  webapp:
+    command: start
+    image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${WEB_CONTAINER}:development
+    build:
+      target: development
+      context: ./remote-lights-web
+    volumes:
+    - type: bind
+      source: ./remote-lights-web/src
+      target: /app/src
+    - type: bind
+      source: ./remote-lights-web/public
+      target: /app/public
+    environment:
+      - NODE_ENV=development

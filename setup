@@ -1,0 +1,32 @@
+#!/usr/bin/python3
+
+import sys, os, yaml
+
+try:
+  stream = open('env.yml', 'r')
+  env = yaml.safe_load(stream)['registry']
+except:
+  print('No env.yml found run "remote-lights init" to create a default one')
+  sys.exit()
+
+# Add registry config to /etc/docker/daemon.json
+address = f'\\"{env["DOCKER_REGISTRY_IP"]}:{env["DOCKER_REGISTRY_PORT"]}\\"'
+insecure_registries_echo = 'echo "{ \\"insecure-registries\\":['+ address +'] }"  >> /etc/docker/daemon.json'
+print(insecure_registries_echo)
+os.system(insecure_registries_echo)
+
+# Update docker daemon to load the configuration
+load_docker_opts = 'echo "DOCKER_OPTS=\\"--config-file=/etc/docker/daemon.json\\"" >> /etc/default/docker'
+print(load_docker_opts)
+os.system(load_docker_opts)
+
+# Restarting docker daemon
+stop_docker = 'systemctl stop docker'
+print(stop_docker)
+os.system(stop_docker)
+
+start_docker = 'systemctl start docker'
+print(start_docker)
+os.system(start_docker)
+
+

@@ -2,8 +2,6 @@ version: "3.9"
 
 services:
   lightsapp:
-    cpus: '1'
-    mem_limit: 300M
-    memswap_limit: 300M
+    image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${LIGHT_CLIENT_CONTAINER}:production
     environment:
       - NODE_ENV=production

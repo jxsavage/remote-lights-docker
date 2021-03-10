@@ -2,20 +2,14 @@ version: "3.9"
 
 services:
   lightsapp:
-    build:
-      context: ./remote-lights-pi
+    image: ${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}/${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${LIGHT_CLIENT_CONTAINER}:production
     ports:
       - 5000:5000
-      - 9229:9229
     networks:
       - frontend
       - backend
-    volumes:
-      - type: bind
-        source: ./remote-lights-pi/src
-        target: /usr/src/app/src
     env_file:
       - socket.env
       - shared.env
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
