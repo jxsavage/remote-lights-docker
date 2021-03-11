@@ -2,6 +2,12 @@
 
 import sys, os, yaml
 
+envArr = ['react', 'socket', 'shared']
+for env in envArr:
+  os.system(f'cp {env}.example.env {env}.env')
+os.system('cp env.example.yml env.yml')
+print('Reset .env files to defaults.')
+
 try:
   stream = open('env.yml', 'r')
   env = yaml.safe_load(stream)['registry']
