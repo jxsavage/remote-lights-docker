@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  webapp:
+  web:
     image: ${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}/${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${WEB_CONTAINER}:production
     ports:
       - 3000:3000

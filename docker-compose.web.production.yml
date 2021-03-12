@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  webapp:
+  web:
     image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${WEB_CONTAINER}:production
     build:
       target: production

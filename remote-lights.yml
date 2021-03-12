@@ -1,7 +1,10 @@
 environment:
   COMPOSE_PROJECT_NAME: remote-lights
   WEB_CONTAINER: web
+  WEB_FILE: ./remote-lights-web
   REDIS_CONTAINER: redis
-  LIGHT_CLIENT_CONTAINER: pi
+  REDIS_FILE: none
+  SOCKET_CONTAINER: socket
+  SOCKET_FILE: ./remote-lights-pi
   PROJECT_SEPERATOR: _
   

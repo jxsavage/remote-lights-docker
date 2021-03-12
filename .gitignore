@@ -2,3 +2,4 @@ react.env
 shared.env
 socket.env
 env.yml
+*.env.yml

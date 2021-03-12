@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  webapp:
+  web:
     command: start
     image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${WEB_CONTAINER}:development
     build:

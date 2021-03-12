@@ -1,85 +1,132 @@
 #!/usr/bin/python3
 
-import os, sys, getopt, yaml
+import os, sys, getopt, yaml, subprocess, time
 
 def main(argv):
   info = '''
 Container Launching Options:
-args:
-up            remote-lights [container options] [--mode] up
+
+Args:
+registry-up   remote-lights [container options] registry-up
+up            remote-lights [container options] [--mode=] up
+build         remote-lights [container options] [--mode=] build
+buildx        remote-lights [container options] [--mode=] buildx
 init          remote-lights init
-build         remote-lights [container options] [--mode] [--push] build
+help          Print this message.
+
 registry-up
 Container Options:
 -w            Launches web container.
 -r            Launches redis container.
 -s            Launches socket container.
 ex: remote-lights -ws to launch web & socket container in development
---mode        opts: production|development
---push        opts: push
-'''
 
+Additional options:
+--mode        opts: production|development
+              default: --mode=development
+--no-cache    BUILDX ONLY: disable build cache
+'''
+  # Parse command line args, make sure we have enough args or print help
   try:
-    opts, args = getopt.getopt(argv, 'rws', ['mode=', 'push'])
+    opts, args = getopt.getopt(argv, 'rws', ['mode=', 'no-cache'])
     if len(args) >= 2:
       print(info)
       print(f'Got too many arguments, expected 1 and got {len(args)}')
+      sys.exit()
+    elif len(args) == 0:
+      print(info)
+      print(f'Too few args, expected 1 and got {len(args)}')
+      sys.exit()
     else:
       command_arg = args[0]
-  except getopt.GetoptError:
+      if command_arg == 'help':
+        print(info)
+        sys.exit()
+  except getopt.GetoptError as error:
     print(info)
+    print('Invalid input:')
+    print (error.msg)
     sys.exit()
   
-  commandArr = ['docker-compose -f docker-compose.yml']
-  containers = []
-  production = False
   # Find out if we're building for production
+  production = False
   for opt, arg in opts:
     if opt == '--mode':
       production = True if arg == 'production' else False
+  def get_mode_env(): return 'production' if production else 'development'
 
   # Adds compose files based on container name
+  files_array = ['-f docker-compose.yml']
+  containers = []
   def add_config(container):
-    commandArr.append(f'-f docker-compose.{container}.yml')
+    files_array.append(f'-f docker-compose.{container}.yml')
     if not command_arg == 'registry-up':
       if production:
-        commandArr.append(f'-f docker-compose.{container}.development.yml')
-        commandArr.append(f'-f docker-compose.{container}.production.yml')
+        files_array.append(f'-f docker-compose.{container}.development.yml')
+        files_array.append(f'-f docker-compose.{container}.production.yml')
       else:
-        commandArr.append(f'-f docker-compose.{container}.development.yml')
+        files_array.append(f'-f docker-compose.{container}.development.yml')
     containers.append(container)
 
-  push_to_registry = False
-  # Parse arguements
+  # Parse arguements for containers
+  no_cache=False
   for opt, arg in opts:
-    # Container Options
     if opt == '-r':
       add_config('redis')
     elif opt == '-w':
       add_config('web')
     elif opt == '-s':
       add_config('socket')
-    elif opt == '--push':
-      push_to_registry = True
+    elif opt == '--no-cache':
+      no_cache=True
 
+  # Combine commands, files and args and execute command
+  command_array = ['docker-compose']
+  arg_array = []
   def execute_command():
-    command = ' '.join(commandArr)
+    command = ' '.join(command_array + files_array + arg_array)
     print('Executing command:')
     print(command)
     os.system(command)
   # Bringing up containers
   if command_arg == 'up' or command_arg == 'registry-up':
-    commandArr.append('up')
+    arg_array.append('up')
     execute_command()
   # Building containers
   elif command_arg == 'build':
-    commandArr.append('build')
+    arg_array.append('build')
     execute_command()
-    #Should we push local to registry?
-    if push_to_registry:
-      environment = 'production' if production else 'development'
-      for container in containers:
-        tag_and_push_image(get_container_name(container), environment)
+  # Use buildx for mutli-platform builds so we dont have to compile on Pi
+  elif command_arg == 'buildx':
+    
+    def exec_buildx_command(container):
+      cmd_array = ['docker buildx build']
+      # ADD linux/arm64 back...
+      buildx_args = ['--platform linux/amd64 --push']
+      if no_cache:
+        buildx_args.append('--no-cache')
+      env = {}
+      for env_file in get_container_env(container):
+        for key, val in load_config(env_file).items():
+          buildx_args.append(f'--build-arg {key}={val}')
+          env[key] = str(val)
+      container_name = create_registry_image_tag(
+        create_image_tag(get_container_name(container), get_mode_env()))
+      buildx_args.append(f'--tag {container_name}')
+      buildx_args.append(f'--target {get_mode_env()}')
+      buildx_args.append(f'{get_container_file(container)}')
+      cmd = ' '.join(cmd_array + buildx_args)
+      print(f'Executing:\n{cmd}')
+      return subprocess.Popen(cmd, shell = True, cwd = os.getcwd(), env=env)
+      
+    processes = []
+
+    for container in containers:
+      processes.append(exec_buildx_command(container))
+    while any(p.wait() for p in processes):
+      time.sleep(2)
+    print('remote-lights buildx complete...')
+    
   # Are we initizilizing env files?
   elif command_arg == 'init':
     envArr = ['react', 'socket', 'shared']
@@ -107,9 +154,13 @@ project_environment = load_config('remote-lights')['environment']
 # environment getters
 def get_web_container(): return project_environment['WEB_CONTAINER']
 def get_redis_container(): return project_environment['REDIS_CONTAINER']
+def get_socket_container(): return project_environment['SOCKET_CONTAINER']
+def get_web_file(): return project_environment['WEB_FILE']
+def get_redis_file(): return project_environment['REDIS_FILE']
+def get_socket_file(): return project_environment['SOCKET_FILE']
 def get_project_name(): return project_environment['COMPOSE_PROJECT_NAME']
 def get_project_seperator(): return project_environment['PROJECT_SEPERATOR']
-def get_light_client_container(): return project_environment['LIGHT_CLIENT_CONTAINER']
+
 
 # Load registry env
 registry_config = load_config('env')['registry']
@@ -138,8 +189,23 @@ def tag_and_push_image(container_name, environment):
   os.system(tag_command)
   print(f'pushing container to registry with command:\n{push_command}')
   os.system(push_command)
-container_names = {'web': get_web_container(), 'socket': get_light_client_container(), 'redis': get_redis_container()}
-def get_container_name(container): return container_names[container]
+# Get container names and Dockerfile locations
+container_info = {
+  'web': {
+    'name': get_web_container(),
+    'file': get_web_file(),
+    'env': ['shared.env', 'react.env']
+    },
+  'socket': {
+    'name': get_socket_container(),
+    'file': get_socket_file(),
+    'env': ['shared.env', 'socket.env']
+    },
+  'redis': {'name': get_redis_container(), 'file': get_redis_file(), 'env': []}
+}
+def get_container_name(container): return container_info[container]['name']
+def get_container_file(container): return container_info[container]['file']
+def get_container_env(container): return container_info[container]['env']
 
 
 if __name__ == '__main__':

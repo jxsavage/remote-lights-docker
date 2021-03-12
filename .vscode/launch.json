@@ -12,8 +12,8 @@
       "console": "integratedTerminal",
       "args": [
         "-w",
-        "--push",
-        "build"
+        "--mode=production",
+        "buildx"
       ],
     },
     {
@@ -23,6 +23,9 @@
       "program": "${workspaceFolder}/setup",
       "console": "integratedTerminal",
       "args": [
+        "-w",
+        "--mode=production",
+        "buildx"
       ],
     }
   ]
