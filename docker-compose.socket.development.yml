@@ -2,8 +2,10 @@ version: "3.9"
 
 services:
   lightsapp:
+    command: dev
     image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${LIGHT_CLIENT_CONTAINER}:development
     build:
+      target: development
       context: ./remote-lights-pi
     ports:
       - 5000:5000
@@ -11,6 +13,6 @@ services:
     volumes:
       - type: bind
         source: ./remote-lights-pi/src
-        target: /usr/src/app/src
+        target: /app/src
     environment:
       - NODE_ENV=development

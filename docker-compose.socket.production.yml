@@ -1,7 +1,10 @@
 version: "3.9"
 
 services:
-  lightsapp:
+  socket:
+    command: start
     image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${LIGHT_CLIENT_CONTAINER}:production
+    build:
+      target: production
     environment:
       - NODE_ENV=production
