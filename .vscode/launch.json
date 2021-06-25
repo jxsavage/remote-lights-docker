@@ -11,7 +11,7 @@
       "program": "${workspaceFolder}/remote-lights",
       "console": "integratedTerminal",
       "args": [
-        "-w",
+        "-s",
         "--mode=production",
         "buildx"
       ],

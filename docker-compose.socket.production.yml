@@ -3,8 +3,8 @@ version: "3.9"
 services:
   socket:
     command: start
-    image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${LIGHT_CLIENT_CONTAINER}:production
-    build:
-      target: production
+    image: ${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}/${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${SOCKET_CONTAINER}:production
+    # build:
+    #   target: production
     environment:
       - NODE_ENV=production

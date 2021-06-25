@@ -1,8 +1,9 @@
 version: "3.9"
 
 services:
-  lightsapp:
-    image: ${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}/${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${LIGHT_CLIENT_CONTAINER}:production
+  socket:
+    command: start
+    image: ${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}/${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${SOCKET_CONTAINER}:production
     ports:
       - 5000:5000
     networks:

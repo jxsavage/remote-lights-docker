@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import os, sys, getopt, yaml, subprocess, time
+import os, sys, getopt, yaml, subprocess, time, fnmatch
 
 def main(argv):
   info = '''
@@ -22,13 +22,16 @@ Container Options:
 ex: remote-lights -ws to launch web & socket container in development
 
 Additional options:
+--verbose
 --mode        opts: production|development
               default: --mode=development
 --no-cache    BUILDX ONLY: disable build cache
 '''
+
+
   # Parse command line args, make sure we have enough args or print help
   try:
-    opts, args = getopt.getopt(argv, 'rws', ['mode=', 'no-cache'])
+    opts, args = getopt.getopt(argv, 'rws', ['mode=', 'no-cache', 'verbose'])
     if len(args) >= 2:
       print(info)
       print(f'Got too many arguments, expected 1 and got {len(args)}')
@@ -50,9 +53,12 @@ Additional options:
   
   # Find out if we're building for production
   production = False
+  verbose = False
   for opt, arg in opts:
     if opt == '--mode':
       production = True if arg == 'production' else False
+    if opt == '--verbose':
+      verbose = True 
   def get_mode_env(): return 'production' if production else 'development'
 
   # Adds compose files based on container name
@@ -84,6 +90,8 @@ Additional options:
   command_array = ['docker-compose']
   arg_array = []
   def execute_command():
+    if verbose:
+      command_array.append('--verbose')
     command = ' '.join(command_array + files_array + arg_array)
     print('Executing command:')
     print(command)
@@ -100,7 +108,7 @@ Additional options:
   elif command_arg == 'buildx':
     
     def exec_buildx_command(container):
-      cmd_array = ['docker buildx build']
+      cmd_array = ['docker buildx build', '--output=type=registry,registry.insecure=true']
       # ADD linux/arm64 back...
       buildx_args = ['--platform linux/amd64 --push']
       if no_cache:
@@ -207,6 +215,25 @@ def get_container_name(container): return container_info[container]['name']
 def get_container_file(container): return container_info[container]['file']
 def get_container_env(container): return container_info[container]['env']
 
+# Searches for teensy3.6 based off of model id presented to udev
+def find_teensy36():
+  dir = os.listdir('/dev')
+  pattern = 'ttyACM*'
+  micros = []
+  
+  for entry in dir:
+    if (fnmatch.fnmatch(entry, pattern)):
+      
+      proc = subprocess.Popen(['udevadm', 'info', f'--name=/dev/{entry}'], stdout=subprocess.PIPE,  shell=False)
+      while proc.wait():
+        time.sleep(2)
+        print('Waiting for udevadm...')
+      
+      for attr in proc.stdout.read().decode('utf-8').split('\nE: ')[1:]:
+        [key, val] = attr.split('=')
+        if(key == 'ID_MODEL_ID' and val == '0483'):
+          micros.append(entry)
+  return micros
 
 if __name__ == '__main__':
    main(sys.argv[1:])

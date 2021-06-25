@@ -1,12 +1,12 @@
 version: "3.9"
 
 services:
-  lightsapp:
+  socket:
     command: dev
-    image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${LIGHT_CLIENT_CONTAINER}:development
-    build:
-      target: development
-      context: ./remote-lights-pi
+    image: ${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}/${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${SOCKET_CONTAINER}:development
+    # build:
+    #   target: development
+    #   context: ./remote-lights-pi
     ports:
       - 5000:5000
       - 9229:9229

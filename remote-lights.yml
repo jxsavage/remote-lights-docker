@@ -3,7 +3,7 @@ environment:
   WEB_CONTAINER: web
   WEB_FILE: ./remote-lights-web
   REDIS_CONTAINER: redis
-  REDIS_FILE: none
+  REDIS_FILE: ./remote-lights-redis
   SOCKET_CONTAINER: socket
   SOCKET_FILE: ./remote-lights-pi
   PROJECT_SEPERATOR: _

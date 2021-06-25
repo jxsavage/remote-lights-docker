@@ -37,7 +37,7 @@ Make `setup` and `remote-lights` executable:
 
 Run `setup` to allow docker to connect to the repository:
 
-`sudo setup`
+`sudo ./setup`
 
 ## Encountering problems with emulation?
 
@@ -60,11 +60,14 @@ Create new docker builder:
 `docker buildx create --name <builder-name> --config /path/to/config.toml`
 
 config must contain if insecure:
-`
-[registry."192.168.0.2:5001"]
-  http = true
-  insecure = true
-`
+
+`[registry."192.168.0.2:5001"]`
+
+  `http = true`
+
+  `insecure = true`
+
+default location on Ubuntu `/etc/docker/daemon.json`
 Switch to builder:
 
 `docker buildx use <builder-name>`
@@ -79,7 +82,41 @@ Switch back to default builder:
 
 ## Pi Setup:
 
+### Add udev rules
+
 [Linux udev rules for teensy](https://www.pjrc.com/teensy/00-teensy.rules)
+
+### Install docker
+[Install Docker Egine](https://docs.docker.com/engine/install/ubuntu/)
+
+`curl -fsSL https://test.docker.com -o test-docker.sh`
+
+`sudo sh test-docker.sh`
+
+[Install Composer v2](https://docs.docker.com/compose/cli-command/#installing-compose-v2)
+
+`curl -L https://raw.githubusercontent.com/docker/compose-cli/main/scripts/install/install_linux.sh | sh`
+
+Find `docker compose` cli plugin @ 
+https://github.com/docker/compose-cli/releases
+
+
+
+Create the cli-plugins dir for docker:
+
+`mkdir ~/.docker/cli-plugins`
+
+`cd ~/.docker/cli-plugins`
+
+Insert the link to the appropriate arch
+
+`curl -fsSL https://github.com/docker/compose-cli/releases/download/v2.0.0-beta.4/docker-compose-linux-arm64 -o docker-compose`
+
+Make Executable:
+
+`sudo chmod +x ~/.docker/cli-plugins/docker-compose`
+
+
 
 
 

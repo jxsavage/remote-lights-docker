@@ -2,9 +2,10 @@ version: "3.9"
 
 services:
   web:
-    image: ${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${WEB_CONTAINER}:production
-    build:
-      target: production
+    image: ${DOCKER_REGISTRY_IP}:${DOCKER_REGISTRY_PORT}/${COMPOSE_PROJECT_NAME}${PROJECT_SEPERATOR}${WEB_CONTAINER}:production
+    # build:
+    #   target: build
+        
     command: server-prod
     environment:
       - NODE_ENV=production

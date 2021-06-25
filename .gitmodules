@@ -4,3 +4,6 @@
 [submodule "remote-lights-pi"]
 	path = remote-lights-pi
 	url = git@github.com:jxsavage/remote-lights-pi.git
+[submodule "remote-lights-redis"]
+	path = remote-lights-redis
+	url = git@github.com:jxsavage/remote-lights-redis.git
